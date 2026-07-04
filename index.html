@@ -311,7 +311,7 @@
 
         // ========== 加载GLB蛋糕模型 ==========
         const loader = new GLTFLoader();
-        loader.load('https://cdn.jsdelivr.net/gh/JelinCat/birthday-cake@main/cake_model.glb', (gltf) => {
+        loader.load('https://media.githubusercontent.com/media/JelinCat/birthday-cake/main/cake_model.glb', (gltf) => {
             const cakeModel = gltf.scene;
 
             // 计算原始边界框
@@ -358,7 +358,7 @@
 
             // 加载蜡烛模型并创建蜡烛
             const candleLoader = new GLTFLoader();
-            candleLoader.load('https://cdn.jsdelivr.net/gh/JelinCat/birthday-cake@main/candle_model.glb', (candleGltf) => {
+            candleLoader.load('https://media.githubusercontent.com/media/JelinCat/birthday-cake/main/candle_model.glb', (candleGltf) => {
                 const candleTemplate = candleGltf.scene;
 
                 // 计算蜡烛模型缩放
