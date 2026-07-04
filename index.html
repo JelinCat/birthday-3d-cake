@@ -343,7 +343,7 @@
             </div>
         </div>
 
-        <button class="audio-btn muted" id="audioBtn">🔇</button>
+        <button class="audio-btn" id="audioBtn">🎵</button>
     </div>
 
     <script type="importmap">
@@ -716,6 +716,7 @@
                 p.mesh.material.opacity = 0.8;
             });
 
+            tryAutoPlayBGM();
             updateHint();
 
             // 所有蜡烛点亮后，场景恢复明亮并关闭蜡烛高亮
@@ -1064,7 +1065,7 @@
         const bgmAudio = new Audio('bgm.m4a');
         bgmAudio.loop = false;
         bgmAudio.volume = 0.6;
-        let bgmMuted = true;
+        let bgmMuted = false;
         let bgmStarted = false;
 
         function startBGM() {
@@ -1073,6 +1074,13 @@
 
         function stopBGM() {
             bgmAudio.pause();
+        }
+
+        // 点击蜡烛后播放背景音乐
+        function tryAutoPlayBGM() {
+            if (bgmStarted) return;
+            startBGM();
+            bgmStarted = true;
         }
 
         const audioBtn = document.getElementById('audioBtn');
@@ -1084,14 +1092,8 @@
                 stopBGM();
             } else {
                 bgmAudio.play().catch(() => {});
-                bgmStarted = true;
             }
         });
-
-        // 页面打开1.5秒后自动模拟点击音乐按钮
-        setTimeout(() => {
-            audioBtn.click();
-        }, 1500);
 
         // 隐藏加载提示
         document.getElementById('loading').classList.add('hidden');
