@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>生日快乐 Ahbi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+            --bg-brightness: 0.18;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: url('bg.png');
+            background-size: cover;
+            background-position: center;
+            filter: blur(10px) brightness(var(--bg-brightness));
+            z-index: -1;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px) saturate(120%);
+            -webkit-backdrop-filter: blur(10px) saturate(120%);
+            z-index: -1;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .gift-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 78px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s, opacity 0.5s;
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: none;
+        }
+        .gift-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .gift-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.1);
+            box-shadow: none;
+        }
+        .gift-btn:active { transform: scale(0.95); }
+
+        .gift-modal {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            backdrop-filter: blur(5px);
+        }
+        .gift-modal.active { display: flex; }
+        .gift-content {
+            background: transparent;
+            padding: 0;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 560px;
+            width: 90%;
+            animation: giftPop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        @keyframes giftPop {
+            0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .gift-card-img {
+            width: 100%;
+            max-width: 520px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: block;
+        }
+        .close-btn {
+            margin-top: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: white;
+            border: none;
+            padding: 12px 36px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+        .close-btn:hover { transform: scale(1.05); }
+
+        .audio-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            color: white;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s;
+        }
+        .audio-btn:hover { background: rgba(255, 255, 255, 0.35); transform: scale(1.1); }
+        .audio-btn.muted { opacity: 0.5; }
+
+        .birthday-text {
+            position: absolute;
+            top: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(63px, 7vw, 91px);
+            font-weight: bold;
+            font-family: 'Pristina', cursive;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 107, 107, 0.6), 0 0 60px rgba(255, 107, 107, 0.4);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+            white-space: nowrap;
+            letter-spacing: 3px;
+        }
+        .birthday-text.show {
+            animation: textGlow 1.2s ease-out forwards;
+        }
+        @keyframes textGlow {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(0.7); }
+            50% { opacity: 0.8; transform: translateX(-50%) translateY(5px) scale(1.05); }
+            100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+
+        .hint-text {
+            position: absolute;
+            bottom: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.85);
+            font-size: 15px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 50;
+            text-align: center;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+        }
+        .hint-text.show { opacity: 1; }
+
+        .loading {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 10;
+            transition: opacity 0.5s;
+        }
+        .loading.hidden { opacity: 0; pointer-events: none; }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div class="loading" id="loading">正在准备生日惊喜...</div>
+        <button class="gift-btn" id="giftBtn">🎁</button>
+
+        <div class="birthday-text" id="birthdayText">Happy Birthday Abhi</div>
+        <div class="hint-text show" id="hintText">🕯️ 点击蜡烛</div>
+
+        <div class="gift-modal" id="giftModal">
+            <div class="gift-content">
+                <img class="gift-card-img" src="card.png" alt="生日贺卡">
+                <button class="close-btn" id="closeBtn">收下祝福</button>
+            </div>
+        </div>
+
+        <button class="audio-btn" id="audioBtn">🎵</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // ========== 场景初始化 ==========
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x1a1a2e, 15, 50);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(9, 11, 13);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // ========== 控制器 ==========
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 7;
+        controls.maxDistance = 22;
+        controls.maxPolarAngle = Math.PI / 2.1;
+        controls.target.set(0, 3.5, 0);
+        controls.enablePan = false;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.8;
+
+        // ========== 灯光 ==========
+        // 初始暗光氛围
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.08);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffeebb, 0.15);
+        dirLight.position.set(6, 12, 6);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 50;
+        dirLight.shadow.bias = -0.001;
+        scene.add(dirLight);
+
+        const fillLight = new THREE.DirectionalLight(0xaaaaff, 0.05);
+        fillLight.position.set(-5, 6, -5);
+        scene.add(fillLight);
+
+        const rimLight = new THREE.DirectionalLight(0xffaaaa, 0.05);
+        rimLight.position.set(0, 5, -8);
+        scene.add(rimLight);
+
+        // 灯光亮度目标值（用于平滑过渡）
+        const LIGHT_TARGET = {
+            dark: { ambient: 0.08, dir: 0.15, fill: 0.05, rim: 0.05 },
+            bright: { ambient: 0.55, dir: 1.1, fill: 0.4, rim: 0.35 },
+            extinguished: { ambient: 0.75, dir: 1.35, fill: 0.55, rim: 0.5 }
+        };
+        let lightTarget = 'dark';
+
+        // ========== 蛋糕组 ==========
+        const cakeGroup = new THREE.Group();
+        scene.add(cakeGroup);
+
+        const PLATE_TOP_Y = 0;
+        let CANDLE_BASE_Y = 3.0;
+
+        // ========== 加载GLB蛋糕模型 ==========
+        const loader = new GLTFLoader();
+        loader.load('cake_model.glb', (gltf) => {
+            const cakeModel = gltf.scene;
+
+            // 计算原始边界框
+            const box = new THREE.Box3().setFromObject(cakeModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+
+            // 目标尺寸：高度约3.0，直径约6.4
+            const targetHeight = 3.0;
+            const targetWidth = 6.4;
+            const scaleH = targetHeight / size.y;
+            const scaleW = targetWidth / Math.max(size.x, size.z);
+            const scale = Math.min(scaleH, scaleW);
+
+            // 应用缩放（放大1.5倍）
+            cakeModel.scale.setScalar(scale * 1.5 * 0.92 * 0.97);
+
+            // 重新计算边界框（基于缩放后的几何体）
+            const newBox = new THREE.Box3().setFromObject(cakeModel);
+            const newSize = newBox.getSize(new THREE.Vector3());
+
+            // 将模型底部对齐到盘子顶部，并水平居中
+            cakeModel.position.set(
+                -center.x * scale,
+                PLATE_TOP_Y - newBox.min.y,
+                -center.z * scale
+            );
+
+            // 启用阴影
+            cakeModel.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+
+            cakeGroup.add(cakeModel);
+
+            // 更新蜡烛位置到模型顶部（嵌入表面，下移0.65，内收0.25）
+            CANDLE_BASE_Y = PLATE_TOP_Y + newSize.y - 0.77;
+
+            // 调整相机控制目标
+            controls.target.set(0, CANDLE_BASE_Y * 0.5, 0);
+
+            // 加载蜡烛模型并创建蜡烛
+            const candleLoader = new GLTFLoader();
+            candleLoader.load('candle_model.glb', (candleGltf) => {
+                const candleTemplate = candleGltf.scene;
+
+                // 计算蜡烛模型缩放
+                const cb = new THREE.Box3().setFromObject(candleTemplate);
+                const cSize = cb.getSize(new THREE.Vector3());
+                const cCenter = cb.getCenter(new THREE.Vector3());
+                const targetCandleHeight = 1.3;
+                const candleScale = (targetCandleHeight / cSize.y) * 1.1;
+
+                for (let i = 0; i < candleCount; i++) {
+                    const angle = (i / candleCount) * Math.PI * 2;
+                    const x = Math.cos(angle) * candleRadius;
+                    const z = Math.sin(angle) * candleRadius;
+
+                    const candleGroup = new THREE.Group();
+                    candleGroup.position.set(x, CANDLE_BASE_Y, z);
+
+                    // 克隆蜡烛模型
+                    const candleModel = candleTemplate.clone();
+                    candleModel.scale.setScalar(candleScale);
+                    candleModel.position.set(
+                        -cCenter.x * candleScale,
+                        -cb.min.y * candleScale,
+                        -cCenter.z * candleScale
+                    );
+                    candleModel.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+                    candleGroup.add(candleModel);
+
+                    // 火焰 - 外层橙红色光晕（锥形更真实，放大两倍）
+                    const flameOuterGeo = new THREE.ConeGeometry(0.18, 0.56, 8);
+                    const flameOuterMat = new THREE.MeshBasicMaterial({
+                        color: 0xFF8866,
+                        transparent: true,
+                        opacity: 0
+                    });
+                    const flameOuter = new THREE.Mesh(flameOuterGeo, flameOuterMat);
+                    flameOuter.position.y = 1.82;
+                    candleGroup.add(flameOuter);
+
+                    // 火焰 - 中层橙色主体（放大两倍）
+                    const flameGeo = new THREE.ConeGeometry(0.12, 0.44, 8);
+                    const flameMat = new THREE.MeshBasicMaterial({
+                        color: 0xFFAA55,
+                        transparent: true,
+                        opacity: 0
+                    });
+                    const flame = new THREE.Mesh(flameGeo, flameMat);
+                    flame.position.y = 1.74;
+                    candleGroup.add(flame);
+
+                    // 火焰内核 - 亮黄色核心（放大两倍）
+                    const flameCoreGeo = new THREE.ConeGeometry(0.07, 0.28, 6);
+                    const flameCoreMat = new THREE.MeshBasicMaterial({
+                        color: 0xFFE680,
+                        transparent: true,
+                        opacity: 0
+                    });
+                    const flameCore = new THREE.Mesh(flameCoreGeo, flameCoreMat);
+                    flameCore.position.y = 1.62;
+                    candleGroup.add(flameCore);
+
+                    // 火焰 - 最内层白炽核心（放大两倍）
+                    const flameInnerGeo = new THREE.SphereGeometry(0.05, 6, 6);
+                    const flameInnerMat = new THREE.MeshBasicMaterial({
+                        color: 0xFFFFF0,
+                        transparent: true,
+                        opacity: 0
+                    });
+                    const flameInner = new THREE.Mesh(flameInnerGeo, flameInnerMat);
+                    flameInner.position.y = 1.52;
+                    candleGroup.add(flameInner);
+
+                    // 火焰光源（放大照射范围）
+                    const flameLight = new THREE.PointLight(0xFFBB66, 0, 10);
+                    flameLight.position.y = 1.5;
+                    flameLight.castShadow = false;
+                    candleGroup.add(flameLight);
+
+                    // 火焰粒子
+                    const particles = [];
+                    const particleColors = [0xFFDD44, 0xFF8800, 0xFFAA33];
+                    for (let p = 0; p < 4; p++) {
+                        const pGeo = new THREE.SphereGeometry(0.025 + p * 0.008, 6, 6);
+                        const pMat = new THREE.MeshBasicMaterial({
+                            color: particleColors[p % particleColors.length],
+                            transparent: true,
+                            opacity: 0
+                        });
+                        const pMesh = new THREE.Mesh(pGeo, pMat);
+                        pMesh.position.y = 1.5 + p * 0.06;
+                        candleGroup.add(pMesh);
+                        particles.push({ mesh: pMesh, offset: p });
+                    }
+
+                    candles.push({
+                        group: candleGroup,
+                        flame: flame,
+                        flameOuter: flameOuter,
+                        flameCore: flameCore,
+                        flameInner: flameInner,
+                        light: flameLight,
+                        particles: particles,
+                        lit: false,
+                        extinguished: false,
+                        baseY: 1.48,
+                        timeOffset: Math.random() * 100
+                    });
+
+                    cakeGroup.add(candleGroup);
+                }
+            }, undefined, (err) => {
+                console.error('加载蜡烛模型失败:', err);
+            });
+
+        }, undefined, (error) => {
+            console.error('加载蛋糕模型失败:', error);
+        });
+
+        // ========== 环境装饰 - 漂浮粒子 ==========
+        const envParticles = [];
+        const envColors = [0xFFD700, 0xFF69B4, 0x87CEEB, 0x98FB98, 0xDDA0DD];
+        for (let i = 0; i < 40; i++) {
+            const geo = new THREE.SphereGeometry(0.04 + Math.random() * 0.04, 6, 6);
+            const mat = new THREE.MeshBasicMaterial({
+                color: envColors[Math.floor(Math.random() * envColors.length)],
+                transparent: true,
+                opacity: 0.4 + Math.random() * 0.4
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(
+                (Math.random() - 0.5) * 20,
+                Math.random() * 15,
+                (Math.random() - 0.5) * 20
+            );
+            scene.add(mesh);
+            envParticles.push({
+                mesh: mesh,
+                speedY: 0.005 + Math.random() * 0.015,
+                speedX: (Math.random() - 0.5) * 0.005,
+                speedZ: (Math.random() - 0.5) * 0.005,
+                baseY: mesh.position.y
+            });
+        }
+
+        // ========== 蜡烛 ==========
+        const candles = [];
+        const candleCount = 7;
+        const candleRadius = 2.35;
+
+        // ========== 交互逻辑 ==========
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function getCandleFromIntersect(object) {
+            for (let i = 0; i < candles.length; i++) {
+                if (candles[i].group === object || candles[i].group.children.includes(object)) {
+                    return i;
+                }
+                let parent = object.parent;
+                while (parent) {
+                    if (parent === candles[i].group) {
+                        return i;
+                    }
+                    parent = parent.parent;
+                }
+            }
+            return -1;
+        }
+
+        function lightCandle(index) {
+            const candle = candles[index];
+            if (candle.lit || candle.extinguished) return;
+            candle.lit = true;
+            candle.flameOuter.material.opacity = 0.5;
+            candle.flame.material.opacity = 0.85;
+            candle.flameCore.material.opacity = 0.9;
+            candle.flameInner.material.opacity = 1.0;
+            candle.light.intensity = 1.8;
+            candle.particles.forEach(p => {
+                p.mesh.material.opacity = 0.8;
+            });
+
+            updateHint();
+
+            // 所有蜡烛点亮后，场景恢复明亮
+            if (candles.every(c => c.lit)) {
+                lightTarget = 'bright';
+            }
+        }
+
+        function createCandleVanishParticles(pos) {
+            const colors = [0xFF6B6B, 0x4ECDC4, 0xF9CA24, 0xFD79A8, 0x6C5CE7, 0x00B894, 0xFFAA00, 0xFFFFFF];
+            for (let i = 0; i < 30; i++) {
+                const geo = new THREE.SphereGeometry(0.025 + Math.random() * 0.04, 6, 6);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: colors[Math.floor(Math.random() * colors.length)]
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(pos);
+                mesh.position.y += 0.3 + Math.random() * 0.5;
+                mesh.position.x += (Math.random() - 0.5) * 0.3;
+                mesh.position.z += (Math.random() - 0.5) * 0.3;
+                scene.add(mesh);
+                celebrationParticles.push({
+                    mesh: mesh,
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.12,
+                        0.03 + Math.random() * 0.12,
+                        (Math.random() - 0.5) * 0.12
+                    ),
+                    life: 1.5,
+                    decay: 0.008 + Math.random() * 0.008
+                });
+            }
+        }
+
+        function extinguishAllCandles() {
+            // 必须所有蜡烛都点亮才能熄灭
+            if (!candles.every(c => c.lit)) return;
+            // 只能熄灭一次
+            if (candles.some(c => c.extinguished)) return;
+
+            candles.forEach(candle => {
+                candle.lit = false;
+                candle.extinguished = true;
+                candle.flameOuter.material.opacity = 0;
+                candle.flame.material.opacity = 0;
+                candle.flameCore.material.opacity = 0;
+                candle.flameInner.material.opacity = 0;
+                candle.light.intensity = 0;
+                candle.particles.forEach(p => {
+                    p.mesh.material.opacity = 0;
+                });
+
+                // 蜡烛转化为粒子消失
+                createCandleVanishParticles(candle.group.position);
+
+                // 延迟隐藏蜡烛本体
+                setTimeout(() => {
+                    candle.group.visible = false;
+                }, 300);
+            });
+
+            document.getElementById('birthdayText').classList.add('show');
+            document.getElementById('hintText').classList.remove('show');
+            document.getElementById('giftBtn').classList.add('visible');
+            createCelebration();
+
+            // 蜡烛熄灭后光照进一步调亮
+            lightTarget = 'extinguished';
+
+            // 1.8秒后自动弹出贺卡
+            setTimeout(() => {
+                document.getElementById('giftModal').classList.add('active');
+            }, 1800);
+        }
+
+        let celebrationParticles = [];
+        function createCelebration() {
+            const colors = [0xFF6B6B, 0x4ECDC4, 0xF9CA24, 0xFD79A8, 0x6C5CE7, 0x00B894];
+            for (let i = 0; i < 50; i++) {
+                const geo = new THREE.SphereGeometry(0.06 + Math.random() * 0.06, 6, 6);
+                const mat = new THREE.MeshBasicMaterial({ color: colors[Math.floor(Math.random() * colors.length)] });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(
+                    (Math.random() - 0.5) * 5,
+                    5 + Math.random() * 3,
+                    (Math.random() - 0.5) * 5
+                );
+                scene.add(mesh);
+                celebrationParticles.push({
+                    mesh: mesh,
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.12,
+                        0.04 + Math.random() * 0.12,
+                        (Math.random() - 0.5) * 0.12
+                    ),
+                    life: 1.0,
+                    decay: 0.008 + Math.random() * 0.008
+                });
+            }
+        }
+
+        function updateHint() {
+            const allLit = candles.every(c => c.lit);
+            const anyExtinguished = candles.some(c => c.extinguished);
+            const anyLit = candles.some(c => c.lit);
+            const birthdayText = document.getElementById('birthdayText');
+            const hintText = document.getElementById('hintText');
+
+            if (anyExtinguished || birthdayText.classList.contains('show')) {
+                hintText.classList.remove('show');
+                return;
+            }
+
+            if (allLit) {
+                hintText.textContent = '✨ 所有蜡烛已点亮！快速旋转蛋糕来熄灭它们';
+                hintText.classList.add('show');
+            } else if (anyLit) {
+                hintText.textContent = '✨ 继续点亮所有蜡烛...';
+                hintText.classList.add('show');
+            } else {
+                hintText.textContent = '🕯️ 点击蜡烛';
+                hintText.classList.add('show');
+            }
+        }
+
+        // 点击检测
+        let clickStart = null;
+
+        function onPointerDown(event) {
+            const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+            const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+            clickStart = { x: clientX, y: clientY, time: Date.now() };
+        }
+
+        function onPointerUp(event) {
+            if (!clickStart) return;
+            const clientX = event.clientX || (event.changedTouches && event.changedTouches[0].clientX);
+            const clientY = event.clientY || (event.changedTouches && event.changedTouches[0].clientY);
+            const dx = clientX - clickStart.x;
+            const dy = clientY - clickStart.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const time = Date.now() - clickStart.time;
+
+            if (distance < 12 && time < 400) {
+                mouse.x = (clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(cakeGroup.children, true);
+                if (intersects.length > 0) {
+                    const candleIndex = getCandleFromIntersect(intersects[0].object);
+                    if (candleIndex >= 0) {
+                        lightCandle(candleIndex);
+                    }
+                }
+            }
+            clickStart = null;
+        }
+
+        // 旋转检测 - 用于熄灭蜡烛（在animate中实现）
+
+        renderer.domElement.addEventListener('mousedown', onPointerDown);
+        renderer.domElement.addEventListener('mouseup', onPointerUp);
+        renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: true });
+        renderer.domElement.addEventListener('touchend', onPointerUp, { passive: true });
+
+        // 旋转速度检测变量
+        let lastCameraAngle = Math.atan2(camera.position.x, camera.position.z);
+        let rapidRotationFrames = 0;
+
+        // ========== 礼物按钮 ==========
+        const giftBtn = document.getElementById('giftBtn');
+        const giftModal = document.getElementById('giftModal');
+        const closeBtn = document.getElementById('closeBtn');
+
+        giftBtn.addEventListener('click', () => {
+            giftModal.classList.add('active');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            giftModal.classList.remove('active');
+        });
+
+        giftModal.addEventListener('click', (e) => {
+            if (e.target === giftModal) {
+                giftModal.classList.remove('active');
+            }
+        });
+
+        // ========== 动画循环 ==========
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            // 检测快速旋转蛋糕体
+            const currentCameraAngle = Math.atan2(camera.position.x, camera.position.z);
+            let angleDelta = currentCameraAngle - lastCameraAngle;
+            if (angleDelta > Math.PI) angleDelta -= Math.PI * 2;
+            if (angleDelta < -Math.PI) angleDelta += Math.PI * 2;
+            const rotationSpeed = Math.abs(angleDelta);
+            lastCameraAngle = currentCameraAngle;
+
+            // 快速旋转熄灭蜡烛：所有蜡烛点亮且未熄灭过时触发
+            if (rotationSpeed > 0.03 && candles.every(c => c.lit) && !candles.some(c => c.extinguished)) {
+                rapidRotationFrames++;
+                if (rapidRotationFrames > 8) {
+                    extinguishAllCandles();
+                    rapidRotationFrames = 0;
+                }
+            } else {
+                rapidRotationFrames = Math.max(0, rapidRotationFrames - 1);
+            }
+
+            // 灯光平滑过渡
+            const target = LIGHT_TARGET[lightTarget];
+            const lerpSpeed = 0.03;
+            ambientLight.intensity += (target.ambient - ambientLight.intensity) * lerpSpeed;
+            dirLight.intensity += (target.dir - dirLight.intensity) * lerpSpeed;
+            fillLight.intensity += (target.fill - fillLight.intensity) * lerpSpeed;
+            rimLight.intensity += (target.rim - rimLight.intensity) * lerpSpeed;
+
+            // 背景亮度同步跟随场景灯光
+            const darkAmbient = LIGHT_TARGET.dark.ambient;
+            const maxAmbient = LIGHT_TARGET.extinguished.ambient;
+            const lightProgress = (ambientLight.intensity - darkAmbient) / (maxAmbient - darkAmbient);
+            const bgBrightness = 0.18 + lightProgress * 0.82;
+            document.body.style.setProperty('--bg-brightness', Math.max(0.18, Math.min(1.0, bgBrightness)));
+
+            // 蛋糕熄灭后下移动画
+            if (candles.some(c => c.extinguished) && cakeGroup.position.y > -1.0) {
+                cakeGroup.position.y += (-1.0 - cakeGroup.position.y) * 0.02;
+            }
+
+            // 火焰动画 - 多层真实摇曳
+            candles.forEach(candle => {
+                if (candle.lit && !candle.extinguished) {
+                    const t = time * 4 + candle.timeOffset;
+                    const t2 = time * 5.5 + candle.timeOffset;
+
+                    // 外层火焰：摇曳幅度最大，最不稳定
+                    candle.flameOuter.position.y = 1.82 + Math.sin(t * 0.9) * 0.06;
+                    candle.flameOuter.scale.x = 1 + Math.sin(t2 * 1.3) * 0.18;
+                    candle.flameOuter.scale.z = 1 + Math.cos(t2 * 1.1) * 0.18;
+                    candle.flameOuter.rotation.z = Math.sin(t * 1.2) * 0.08;
+
+                    // 中层火焰
+                    candle.flame.position.y = 1.74 + Math.sin(t * 1.1) * 0.05;
+                    candle.flame.scale.x = 1 + Math.sin(t * 2.3) * 0.12;
+                    candle.flame.scale.z = 1 + Math.cos(t * 1.7) * 0.12;
+                    candle.flame.rotation.z = Math.sin(t * 1.5) * 0.06;
+
+                    // 核心火焰
+                    candle.flameCore.position.y = 1.62 + Math.sin(t * 1.5) * 0.025;
+                    candle.flameCore.scale.x = 1 + Math.sin(t * 2.8) * 0.08;
+                    candle.flameCore.scale.z = 1 + Math.cos(t * 2.2) * 0.08;
+
+                    // 内层白炽核心：最稳定，几乎不摇曳
+                    candle.flameInner.position.y = 1.52 + Math.sin(t * 2.0) * 0.012;
+                    candle.flameInner.scale.setScalar(1 + Math.sin(t * 3) * 0.05);
+
+                    // 光源强度随火焰摇曳波动
+                    candle.light.intensity = 1.5 + Math.sin(t * 5) * 0.4;
+
+                    candle.particles.forEach((p, idx) => {
+                        const pt = t + idx * 1.5;
+                        p.mesh.position.y = candle.baseY + 0.05 + idx * 0.06 + Math.sin(pt) * 0.015;
+                        p.mesh.position.x = Math.sin(pt * 0.8) * 0.02;
+                        p.mesh.position.z = Math.cos(pt * 0.6) * 0.02;
+                        p.mesh.material.opacity = 0.5 + Math.sin(pt * 2) * 0.25;
+                    });
+                }
+            });
+
+            // 庆祝粒子动画
+            for (let i = celebrationParticles.length - 1; i >= 0; i--) {
+                const cp = celebrationParticles[i];
+                cp.mesh.position.add(cp.velocity);
+                cp.life -= cp.decay;
+                cp.mesh.scale.setScalar(Math.max(0.1, cp.life));
+                cp.mesh.material.opacity = cp.life;
+                cp.velocity.y += 0.001;
+
+                if (cp.life <= 0) {
+                    scene.remove(cp.mesh);
+                    celebrationParticles.splice(i, 1);
+                }
+            }
+
+            // 环境粒子动画
+            envParticles.forEach(ep => {
+                ep.mesh.position.y += ep.speedY;
+                ep.mesh.position.x += ep.speedX;
+                ep.mesh.position.z += ep.speedZ;
+                if (ep.mesh.position.y > ep.baseY + 3) {
+                    ep.mesh.position.y = ep.baseY;
+                }
+                ep.mesh.material.opacity = 0.3 + Math.sin(time * 2 + ep.mesh.position.x) * 0.2;
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // ========== BGM：背景音乐 ==========
+        const bgmAudio = new Audio('bgm.m4a');
+        bgmAudio.loop = false;
+        bgmAudio.volume = 0.6;
+        let bgmMuted = false;
+        let bgmStarted = false;
+
+        function startBGM() {
+            bgmAudio.play().catch(() => {});
+        }
+
+        function stopBGM() {
+            bgmAudio.pause();
+        }
+
+        // 页面加载1秒后自动播放
+        setTimeout(() => {
+            startBGM();
+            bgmStarted = true;
+        }, 1000);
+
+        const audioBtn = document.getElementById('audioBtn');
+        audioBtn.addEventListener('click', () => {
+            bgmMuted = !bgmMuted;
+            audioBtn.textContent = bgmMuted ? '🔇' : '🎵';
+            audioBtn.classList.toggle('muted', bgmMuted);
+            if (bgmMuted) {
+                stopBGM();
+            } else {
+                bgmAudio.play().catch(() => {});
+            }
+        });
+
+        // 隐藏加载提示
+        document.getElementById('loading').classList.add('hidden');
+
+        animate();
+
+        // 窗口调整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 生成CSS星星
+        function createStars() {
+            const container = document.getElementById('canvas-container');
+            for (let i = 0; i < 30; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = 2 + Math.random() * 4;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                star.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+                container.appendChild(star);
+            }
+        }
+        createStars();
+    </script>
+</body>
+</html>
