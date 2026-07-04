@@ -1064,7 +1064,7 @@
         const bgmAudio = new Audio('bgm.m4a');
         bgmAudio.loop = false;
         bgmAudio.volume = 0.6;
-        let bgmMuted = false;
+        let bgmMuted = true;
         let bgmStarted = false;
 
         function startBGM() {
@@ -1076,6 +1076,8 @@
         }
 
         const audioBtn = document.getElementById('audioBtn');
+        audioBtn.textContent = '🔇';
+        audioBtn.classList.add('muted');
         audioBtn.addEventListener('click', () => {
             bgmMuted = !bgmMuted;
             audioBtn.textContent = bgmMuted ? '🔇' : '🎵';
@@ -1084,15 +1086,13 @@
                 stopBGM();
             } else {
                 bgmAudio.play().catch(() => {});
+                bgmStarted = true;
             }
         });
 
-        // 页面打开1.5秒后自动播放音乐
+        // 页面打开1.5秒后自动模拟点击音乐按钮
         setTimeout(() => {
-            if (!bgmStarted) {
-                startBGM();
-                bgmStarted = true;
-            }
+            audioBtn.click();
         }, 1500);
 
         // 隐藏加载提示
