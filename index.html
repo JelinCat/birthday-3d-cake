@@ -343,7 +343,7 @@
             </div>
         </div>
 
-        <button class="audio-btn" id="audioBtn">🎵</button>
+        <button class="audio-btn muted" id="audioBtn">🔇</button>
     </div>
 
     <script type="importmap">
@@ -1076,8 +1076,6 @@
         }
 
         const audioBtn = document.getElementById('audioBtn');
-        audioBtn.textContent = '🔇';
-        audioBtn.classList.add('muted');
         audioBtn.addEventListener('click', () => {
             bgmMuted = !bgmMuted;
             audioBtn.textContent = bgmMuted ? '🔇' : '🎵';
