@@ -334,7 +334,7 @@
         <button class="gift-btn" id="giftBtn">🎁</button>
 
         <div class="birthday-text" id="birthdayText">Happy Birthday Abhi</div>
-        <div class="hint-text show" id="hintText">🕯️ 点亮蜡烛获取惊喜！Click the candle to get a surprise!</div>
+        <div class="hint-text show" id="hintText">🕯️ 点亮蜡烛获取惊喜！Click the candles to get a surprise!</div>
 
         <div class="gift-modal" id="giftModal">
             <div class="gift-content">
@@ -716,7 +716,6 @@
                 p.mesh.material.opacity = 0.8;
             });
 
-            tryAutoPlayBGM();
             updateHint();
 
             // 所有蜡烛点亮后，场景恢复明亮并关闭蜡烛高亮
@@ -1076,13 +1075,6 @@
             bgmAudio.pause();
         }
 
-        // 点击蜡烛后播放背景音乐
-        function tryAutoPlayBGM() {
-            if (bgmStarted) return;
-            startBGM();
-            bgmStarted = true;
-        }
-
         const audioBtn = document.getElementById('audioBtn');
         audioBtn.addEventListener('click', () => {
             bgmMuted = !bgmMuted;
@@ -1094,6 +1086,14 @@
                 bgmAudio.play().catch(() => {});
             }
         });
+
+        // 页面打开1.5秒后自动播放音乐
+        setTimeout(() => {
+            if (!bgmStarted) {
+                startBGM();
+                bgmStarted = true;
+            }
+        }, 1500);
 
         // 隐藏加载提示
         document.getElementById('loading').classList.add('hidden');
