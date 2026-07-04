@@ -89,17 +89,18 @@
             padding: 0;
             border-radius: 16px;
             text-align: center;
-            max-width: 560px;
+            max-width: 840px;
             width: 90%;
             animation: giftPop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
+            transform: scale(1.5);
         }
         @keyframes giftPop {
             0% { transform: scale(0) rotate(-10deg); opacity: 0; }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: scale(1.5) rotate(0deg); opacity: 1; }
         }
         .gift-card-img {
             width: 100%;
@@ -150,24 +151,36 @@
             top: 12%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: clamp(63px, 7vw, 91px);
-            font-weight: bold;
-            font-family: 'Pristina', cursive;
-            color: #fff;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 107, 107, 0.6), 0 0 60px rgba(255, 107, 107, 0.4);
+            font-size: clamp(78px, 8vw, 106px);
+            font-weight: normal;
+            font-family: 'Vladimir Script', 'Pristina', 'Brush Script MT', 'Segoe Script', 'Comic Sans MS', cursive;
+            color: #FFD700;
             opacity: 0;
             pointer-events: none;
             z-index: 50;
             white-space: nowrap;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #FFF8DC 0%, #fff098 15%, #fed876 30%, #fac336 50%, #f4b20a 60%, #fff098 85%, #FFF8DC 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            -webkit-text-stroke: 2px rgba(255, 215, 0, 0.5);
+            text-stroke: 2px rgba(255, 215, 0, 0.5);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 20px rgba(255, 217, 0, 0.505)) drop-shadow(0 0 40px rgba(246, 193, 61, 0.566));
+            animation: shimmer 4s ease-in-out infinite;
         }
         .birthday-text.show {
-            animation: textGlow 1.2s ease-out forwards;
+            animation: textGlow 1.2s ease-out forwards, shimmer 4s ease-in-out infinite;
         }
         @keyframes textGlow {
             0% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(0.7); }
             50% { opacity: 0.8; transform: translateX(-50%) translateY(5px) scale(1.05); }
             100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         .hint-text {
@@ -209,7 +222,7 @@
             z-index: 1;
         }
         @keyframes twinkle {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
+            0%, 100% { opacity: 0.36; transform: scale(1); }
             50% { opacity: 1; transform: scale(1.2); }
         }
     </style>
@@ -220,12 +233,12 @@
         <button class="gift-btn" id="giftBtn">🎁</button>
 
         <div class="birthday-text" id="birthdayText">Happy Birthday Abhi</div>
-        <div class="hint-text show" id="hintText">🕯️ 点击蜡烛</div>
+        <div class="hint-text show" id="hintText">🕯️ 点亮蜡烛获取惊喜！Click the candle to get a surprise!</div>
 
         <div class="gift-modal" id="giftModal">
             <div class="gift-content">
                 <img class="gift-card-img" src="card.png" alt="生日贺卡">
-                <button class="close-btn" id="closeBtn">收下祝福</button>
+                <button class="close-btn" id="closeBtn">收下祝福 Blessing Abhi</button>
             </div>
         </div>
 
@@ -244,6 +257,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
         // ========== 场景初始化 ==========
         const scene = new THREE.Scene();
@@ -309,9 +323,14 @@
         const PLATE_TOP_Y = 0;
         let CANDLE_BASE_Y = 3.0;
 
+        // ========== DRACOLoader配置 ==========
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('draco/');
+
         // ========== 加载GLB蛋糕模型 ==========
         const loader = new GLTFLoader();
-        loader.load('https://media.githubusercontent.com/media/JelinCat/birthday-cake/main/cake_model.glb', (gltf) => {
+        loader.setDRACOLoader(dracoLoader);
+        loader.load('cake_model_opt.glb', (gltf) => {
             const cakeModel = gltf.scene;
 
             // 计算原始边界框
@@ -358,7 +377,8 @@
 
             // 加载蜡烛模型并创建蜡烛
             const candleLoader = new GLTFLoader();
-            candleLoader.load('https://media.githubusercontent.com/media/JelinCat/birthday-cake/main/candle_model.glb', (candleGltf) => {
+            candleLoader.setDRACOLoader(dracoLoader);
+            candleLoader.load('candle_model_opt.glb', (candleGltf) => {
                 const candleTemplate = candleGltf.scene;
 
                 // 计算蜡烛模型缩放
@@ -384,73 +404,103 @@
                         -cb.min.y * candleScale,
                         -cCenter.z * candleScale
                     );
+                    const originalMaterials = [];
                     candleModel.traverse((child) => {
                         if (child.isMesh) {
                             child.castShadow = true;
                             child.receiveShadow = true;
+                            if (child.material) {
+                                originalMaterials.push({
+                                    mesh: child,
+                                    emissive: child.material.emissive ? child.material.emissive.clone() : null,
+                                    emissiveIntensity: child.material.emissiveIntensity || 0,
+                                    color: child.material.color ? child.material.color.clone() : null
+                                });
+                                if (child.material.emissive !== undefined) {
+                                    child.material.emissive = new THREE.Color(0xFFE4B5);
+                                    child.material.emissiveIntensity = 0.9;
+                                } else if (child.material.color !== undefined) {
+                                    child.material.color = new THREE.Color(0xFFE4B5);
+                                }
+                            }
                         }
                     });
                     candleGroup.add(candleModel);
 
-                    // 火焰 - 外层橙红色光晕（锥形更真实，放大两倍）
-                    const flameOuterGeo = new THREE.ConeGeometry(0.18, 0.56, 8);
+                    // 火焰 - 外层橙红色光晕（柔和边缘，增加分段）
+                    const flameOuterGeo = new THREE.ConeGeometry(0.22, 0.62, 24);
                     const flameOuterMat = new THREE.MeshBasicMaterial({
                         color: 0xFF8866,
                         transparent: true,
-                        opacity: 0
+                        opacity: 0,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
                     });
                     const flameOuter = new THREE.Mesh(flameOuterGeo, flameOuterMat);
-                    flameOuter.position.y = 1.82;
+                    flameOuter.position.y = 1.85;
                     candleGroup.add(flameOuter);
 
-                    // 火焰 - 中层橙色主体（放大两倍）
-                    const flameGeo = new THREE.ConeGeometry(0.12, 0.44, 8);
+                    // 火焰 - 中层橙色主体（柔和边缘，增加分段）
+                    const flameGeo = new THREE.ConeGeometry(0.14, 0.48, 20);
                     const flameMat = new THREE.MeshBasicMaterial({
                         color: 0xFFAA55,
                         transparent: true,
-                        opacity: 0
+                        opacity: 0,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
                     });
                     const flame = new THREE.Mesh(flameGeo, flameMat);
-                    flame.position.y = 1.74;
+                    flame.position.y = 1.76;
                     candleGroup.add(flame);
 
-                    // 火焰内核 - 亮黄色核心（放大两倍）
-                    const flameCoreGeo = new THREE.ConeGeometry(0.07, 0.28, 6);
+                    // 火焰内核 - 亮黄色核心（柔和边缘，增加分段）
+                    const flameCoreGeo = new THREE.ConeGeometry(0.08, 0.32, 16);
                     const flameCoreMat = new THREE.MeshBasicMaterial({
                         color: 0xFFE680,
                         transparent: true,
-                        opacity: 0
+                        opacity: 0,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
                     });
                     const flameCore = new THREE.Mesh(flameCoreGeo, flameCoreMat);
-                    flameCore.position.y = 1.62;
+                    flameCore.position.y = 1.64;
                     candleGroup.add(flameCore);
 
-                    // 火焰 - 最内层白炽核心（放大两倍）
-                    const flameInnerGeo = new THREE.SphereGeometry(0.05, 6, 6);
+                    // 火焰 - 最内层白炽核心（柔和边缘，增加分段）
+                    const flameInnerGeo = new THREE.SphereGeometry(0.06, 12, 12);
                     const flameInnerMat = new THREE.MeshBasicMaterial({
                         color: 0xFFFFF0,
                         transparent: true,
-                        opacity: 0
+                        opacity: 0,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
                     });
                     const flameInner = new THREE.Mesh(flameInnerGeo, flameInnerMat);
-                    flameInner.position.y = 1.52;
+                    flameInner.position.y = 1.54;
                     candleGroup.add(flameInner);
 
-                    // 火焰光源（放大照射范围）
-                    const flameLight = new THREE.PointLight(0xFFBB66, 0, 10);
+                    // 火焰光源（柔和照射范围）
+                    const flameLight = new THREE.PointLight(0xFFBB66, 0, 18);
                     flameLight.position.y = 1.5;
                     flameLight.castShadow = false;
                     candleGroup.add(flameLight);
+
+                    // 蜡烛高亮光源（初始状态照亮蜡烛）
+                    const highlightLight = new THREE.PointLight(0xFFE4B5, 2.5, 4);
+                    highlightLight.position.set(0, 0.6, 0);
+                    candleGroup.add(highlightLight);
 
                     // 火焰粒子
                     const particles = [];
                     const particleColors = [0xFFDD44, 0xFF8800, 0xFFAA33];
                     for (let p = 0; p < 4; p++) {
-                        const pGeo = new THREE.SphereGeometry(0.025 + p * 0.008, 6, 6);
+                        const pGeo = new THREE.SphereGeometry(0.03 + p * 0.01, 12, 12);
                         const pMat = new THREE.MeshBasicMaterial({
                             color: particleColors[p % particleColors.length],
                             transparent: true,
-                            opacity: 0
+                            opacity: 0,
+                            blending: THREE.AdditiveBlending,
+                            depthWrite: false
                         });
                         const pMesh = new THREE.Mesh(pGeo, pMat);
                         pMesh.position.y = 1.5 + p * 0.06;
@@ -465,7 +515,9 @@
                         flameCore: flameCore,
                         flameInner: flameInner,
                         light: flameLight,
+                        highlightLight: highlightLight,
                         particles: particles,
+                        originalMaterials: originalMaterials,
                         lit: false,
                         extinguished: false,
                         baseY: 1.48,
@@ -490,7 +542,7 @@
             const mat = new THREE.MeshBasicMaterial({
                 color: envColors[Math.floor(Math.random() * envColors.length)],
                 transparent: true,
-                opacity: 0.4 + Math.random() * 0.4
+                opacity: 0.48 + Math.random() * 0.48
             });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(
@@ -546,20 +598,35 @@
                 p.mesh.material.opacity = 0.8;
             });
 
+            tryAutoPlayBGM();
             updateHint();
 
-            // 所有蜡烛点亮后，场景恢复明亮
+            // 所有蜡烛点亮后，场景恢复明亮并关闭蜡烛高亮
             if (candles.every(c => c.lit)) {
                 lightTarget = 'bright';
+                candles.forEach(candle => {
+                    candle.originalMaterials.forEach(om => {
+                        if (om.emissive !== null) {
+                            om.mesh.material.emissive.copy(om.emissive);
+                        }
+                        om.mesh.material.emissiveIntensity = om.emissiveIntensity;
+                        if (om.color !== null) {
+                            om.mesh.material.color.copy(om.color);
+                        }
+                    });
+                    candle.highlightLight.intensity = 0;
+                });
             }
         }
 
         function createCandleVanishParticles(pos) {
-            const colors = [0xFF6B6B, 0x4ECDC4, 0xF9CA24, 0xFD79A8, 0x6C5CE7, 0x00B894, 0xFFAA00, 0xFFFFFF];
-            for (let i = 0; i < 30; i++) {
-                const geo = new THREE.SphereGeometry(0.025 + Math.random() * 0.04, 6, 6);
+            const starColors = [0xFFE4B5, 0xFFFACD, 0xFFFFE0, 0xFFD700, 0xFFEC8B];
+            for (let i = 0; i < 25; i++) {
+                const geo = new THREE.SphereGeometry(0.015 + Math.random() * 0.02, 8, 8);
                 const mat = new THREE.MeshBasicMaterial({
-                    color: colors[Math.floor(Math.random() * colors.length)]
+                    color: starColors[Math.floor(Math.random() * starColors.length)],
+                    transparent: true,
+                    opacity: 0.6 + Math.random() * 0.4
                 });
                 const mesh = new THREE.Mesh(geo, mat);
                 mesh.position.copy(pos);
@@ -570,12 +637,13 @@
                 celebrationParticles.push({
                     mesh: mesh,
                     velocity: new THREE.Vector3(
-                        (Math.random() - 0.5) * 0.12,
-                        0.03 + Math.random() * 0.12,
-                        (Math.random() - 0.5) * 0.12
+                        (Math.random() - 0.5) * 0.08,
+                        0.02 + Math.random() * 0.08,
+                        (Math.random() - 0.5) * 0.08
                     ),
-                    life: 1.5,
-                    decay: 0.008 + Math.random() * 0.008
+                    life: 1.8,
+                    decay: 0.005 + Math.random() * 0.005,
+                    star: true
                 });
             }
         }
@@ -615,34 +683,39 @@
             // 蜡烛熄灭后光照进一步调亮
             lightTarget = 'extinguished';
 
-            // 1.8秒后自动弹出贺卡
+            // 2.5秒后自动弹出贺卡
             setTimeout(() => {
                 document.getElementById('giftModal').classList.add('active');
-            }, 1800);
+            }, 2500);
         }
 
         let celebrationParticles = [];
         function createCelebration() {
-            const colors = [0xFF6B6B, 0x4ECDC4, 0xF9CA24, 0xFD79A8, 0x6C5CE7, 0x00B894];
-            for (let i = 0; i < 50; i++) {
-                const geo = new THREE.SphereGeometry(0.06 + Math.random() * 0.06, 6, 6);
-                const mat = new THREE.MeshBasicMaterial({ color: colors[Math.floor(Math.random() * colors.length)] });
+            const starColors = [0xFFE4B5, 0xFFFACD, 0xFFFFE0, 0xFFD700, 0xFFEC8B, 0xFFFAF0];
+            for (let i = 0; i < 40; i++) {
+                const geo = new THREE.SphereGeometry(0.02 + Math.random() * 0.025, 8, 8);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: starColors[Math.floor(Math.random() * starColors.length)],
+                    transparent: true,
+                    opacity: 0.5 + Math.random() * 0.5
+                });
                 const mesh = new THREE.Mesh(geo, mat);
                 mesh.position.set(
-                    (Math.random() - 0.5) * 5,
-                    5 + Math.random() * 3,
-                    (Math.random() - 0.5) * 5
+                    (Math.random() - 0.5) * 6,
+                    4 + Math.random() * 4,
+                    (Math.random() - 0.5) * 6
                 );
                 scene.add(mesh);
                 celebrationParticles.push({
                     mesh: mesh,
                     velocity: new THREE.Vector3(
-                        (Math.random() - 0.5) * 0.12,
-                        0.04 + Math.random() * 0.12,
-                        (Math.random() - 0.5) * 0.12
+                        (Math.random() - 0.5) * 0.06,
+                        -0.01 + Math.random() * 0.06,
+                        (Math.random() - 0.5) * 0.06
                     ),
-                    life: 1.0,
-                    decay: 0.008 + Math.random() * 0.008
+                    life: 2.0,
+                    decay: 0.004 + Math.random() * 0.004,
+                    star: true
                 });
             }
         }
@@ -660,10 +733,10 @@
             }
 
             if (allLit) {
-                hintText.textContent = '✨ 所有蜡烛已点亮！快速旋转蛋糕来熄灭它们';
+                hintText.textContent = '✨ 所有蜡烛已点亮！快速旋转蛋糕来熄灭它们...Spin the cake to blow out all candles';
                 hintText.classList.add('show');
             } else if (anyLit) {
-                hintText.textContent = '✨ 继续点亮所有蜡烛...';
+                hintText.textContent = '✨ 继续点亮所有蜡烛...Click to continue lighting';
                 hintText.classList.add('show');
             } else {
                 hintText.textContent = '🕯️ 点击蜡烛';
@@ -780,6 +853,20 @@
                 cakeGroup.position.y += (-1.0 - cakeGroup.position.y) * 0.02;
             }
 
+            // 蜡烛高亮脉冲动画 - 未点亮时显示呼吸效果
+            const allLit = candles.every(c => c.lit);
+            candles.forEach(candle => {
+                if (!candle.lit && !candle.extinguished && !allLit) {
+                    const pulseIntensity = 0.5 + Math.sin(time * 3 + candle.timeOffset) * 0.3;
+                    candle.originalMaterials.forEach(om => {
+                        if (om.mesh.material.emissive !== undefined) {
+                            om.mesh.material.emissiveIntensity = pulseIntensity;
+                        }
+                    });
+                    candle.highlightLight.intensity = 2.0 + Math.sin(time * 3 + candle.timeOffset) * 1.0;
+                }
+            });
+
             // 火焰动画 - 多层真实摇曳
             candles.forEach(candle => {
                 if (candle.lit && !candle.extinguished) {
@@ -826,8 +913,14 @@
                 cp.mesh.position.add(cp.velocity);
                 cp.life -= cp.decay;
                 cp.mesh.scale.setScalar(Math.max(0.1, cp.life));
-                cp.mesh.material.opacity = cp.life;
-                cp.velocity.y += 0.001;
+                cp.velocity.y += 0.0008;
+
+                if (cp.star) {
+                    const twinkle = 0.5 + Math.sin(time * 8 + i) * 0.3;
+                    cp.mesh.material.opacity = Math.max(0.1, cp.life * twinkle);
+                } else {
+                    cp.mesh.material.opacity = cp.life;
+                }
 
                 if (cp.life <= 0) {
                     scene.remove(cp.mesh);
@@ -843,7 +936,7 @@
                 if (ep.mesh.position.y > ep.baseY + 3) {
                     ep.mesh.position.y = ep.baseY;
                 }
-                ep.mesh.material.opacity = 0.3 + Math.sin(time * 2 + ep.mesh.position.x) * 0.2;
+                ep.mesh.material.opacity = 0.36 + Math.sin(time * 2 + ep.mesh.position.x) * 0.24;
             });
 
             controls.update();
@@ -865,11 +958,12 @@
             bgmAudio.pause();
         }
 
-        // 页面加载1秒后自动播放
-        setTimeout(() => {
+        // 点击蜡烛后播放背景音乐
+        function tryAutoPlayBGM() {
+            if (bgmStarted) return;
             startBGM();
             bgmStarted = true;
-        }, 1000);
+        }
 
         const audioBtn = document.getElementById('audioBtn');
         audioBtn.addEventListener('click', () => {
